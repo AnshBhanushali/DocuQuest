@@ -1,4 +1,4 @@
-// frontend/app/context/AuthContext.tsx
+// app/context/AuthContext.tsx
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode } from "react";
@@ -28,22 +28,14 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  // state to hold the current role
   const [role, setRole] = useState<Role>("guest");
-
-  // isAuthenticated is true if role is either 'user' or 'admin', false for 'guest'
   const isAuthenticated = role === "user" || role === "admin";
 
-  // A very simple signIn function that:
-  //  - if username === "admin@example.com" & password === "adminpass", set role = "admin"
-  //  - otherwise, if username/password are nonempty, set role = "user"
-  //  - returns true if login succeeded, false if it failed (e.g. blank credentials)
   const signIn = (username: string, password: string): boolean => {
     if (!username.trim() || !password.trim()) {
-      return false; // no blank username/password
+      return false;
     }
-
-    // hard-coded “admin” check:
+    // Simple “admin” check:
     if (
       username.trim().toLowerCase() === "admin@example.com" &&
       password.trim() === "adminpass"
@@ -51,18 +43,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setRole("admin");
       return true;
     }
-
-    // any other nonempty credentials → regular "user"
+    // Any other nonempty credentials → “user”
     setRole("user");
     return true;
   };
 
-  // Skip function simply sets role = "guest"
   const skip = () => {
     setRole("guest");
   };
 
-  // signOut clears everything back to guest
   const signOut = () => {
     setRole("guest");
   };
