@@ -40,22 +40,22 @@ const { Title, Text } = Typography;
  */
 const themes = {
   dark: {
-    bg: "#0f0f1a",
-    surface: "#1e1e2a",
-    primary: "#8a2be2",
-    accent: "#00ffff",
-    text: "#e0e0e0",
-    textSecondary: "#a0a0b0",
-    border: "#2a2a3a",
+    bg: "#0f0f1a", // Very dark navy with a hint of purple
+    surface: "#1e1e2a", // Deep charcoal-purple for panels
+    primary: "#8a2be2", // Neon violet accent
+    accent: "#00ffff", // Neon cyan highlight
+    text: "#e0e0e0", // Light gray for primary text
+    textSecondary: "#a0a0b0", // Muted gray for secondary text
+    border: "#2a2a3a", // Dark border
   },
   light: {
-    bg: "#f0f0f5",
-    surface: "#ffffff",
-    primary: "#8a2be2",
-    accent: "#00ffff",
-    text: "#1b1b1f",
-    textSecondary: "#5a5a6a",
-    border: "#e0e0eb",
+    bg: "#f0f0f5", // Soft lavender background
+    surface: "#ffffff", // White for panels
+    primary: "#8a2be2", // Violet accent
+    accent: "#00ffff", // Cyan highlight
+    text: "#1b1b1f", // Very dark text
+    textSecondary: "#5a5a6a", // Muted gray
+    border: "#e0e0eb", // Light border
   },
 };
 
@@ -88,7 +88,7 @@ export default function ClientAppLayout({ children }: { children: ReactNode }) {
 
   const handleSend = () => {
     if (!hasChatted) setHasChatted(true);
-    // (Actual send logic goes in the child chat component)
+    // (Actual send logic goes here)
   };
 
   const toggleTheme = (checked: boolean) => {
@@ -261,7 +261,7 @@ export default function ClientAppLayout({ children }: { children: ReactNode }) {
             style={{ fontSize: "16px", color: currentColors.text }}
           />
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            {/* -- Model Selector -- */}
+            {/* -- Model Selector moved to Header (smaller size) -- */}
             <Dropdown
               menu={menuProps}
               placement="bottomRight"
@@ -321,12 +321,9 @@ export default function ClientAppLayout({ children }: { children: ReactNode }) {
               <Title
                 level={1}
                 style={{
-                  background: `linear-gradient(135deg, ${currentColors.primary} 0%, ${currentColors.accent} 100%)`,
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
+                  ...gradientText,
                   fontSize: "clamp(2.5rem, 5vw, 4rem)",
                   marginBottom: 16,
-                  fontFamily: "'Poppins', sans-serif",
                 }}
               >
                 How can I help you today?
@@ -373,10 +370,7 @@ export default function ClientAppLayout({ children }: { children: ReactNode }) {
               </div>
             </div>
           )}
-
-          {/* ←─── This is where the “chat children” will render. ───→ */}
           {children}
-
           <div style={{ flexGrow: 1 }} />
         </Content>
 

@@ -32,12 +32,6 @@ import {
 const { Sider, Content, Footer, Header } = Layout;
 const { Title, Text } = Typography;
 
-/**
- * -- Metaverse‐Inspired Theme Palettes --
- *
- * Dark: Deep cosmic purple/blue background with neon cyan/purple accents
- * Light: Soft lavender/white background with violet accents
- */
 const themes = {
   dark: {
     bg: "#0f0f1a",
@@ -59,7 +53,6 @@ const themes = {
   },
 };
 
-// --- Stub Data & Model Options ---
 const todayConvos = [
   { key: "1", label: "UI/UX Improvement" },
   { key: "2", label: "State Management" },
@@ -80,7 +73,6 @@ export default function ClientAppLayout({ children }: { children: ReactNode }) {
 
   const currentColors = themes[theme];
 
-  // --- Handlers ---
   const handleModelChange = (e: { key: React.Key }) => {
     const model = modelOptions.find((m) => m.key === e.key);
     if (model) setSelectedModel(model);
@@ -88,14 +80,13 @@ export default function ClientAppLayout({ children }: { children: ReactNode }) {
 
   const handleSend = () => {
     if (!hasChatted) setHasChatted(true);
-    // (Actual send logic goes in the child chat component)
+    // (Actual send logic goes here, but in this layout we just note that sending has started.)
   };
 
   const toggleTheme = (checked: boolean) => {
     setTheme(checked ? "light" : "dark");
   };
 
-  // --- Dynamic Styles ---
   const gradientText: React.CSSProperties = {
     background: `linear-gradient(135deg, ${currentColors.primary} 0%, ${currentColors.accent} 100%)`,
     WebkitBackgroundClip: "text",
@@ -125,14 +116,8 @@ export default function ClientAppLayout({ children }: { children: ReactNode }) {
   };
 
   return (
-    <Layout
-      style={{
-        minHeight: "100vh",
-        background: currentColors.bg,
-        fontFamily: "'Poppins', sans-serif",
-      }}
-    >
-      {/* --- Sidebar (Resizable via CSS) --- */}
+    <Layout style={{ minHeight: "100vh", background: currentColors.bg, fontFamily: "'Poppins', sans-serif" }}>
+      {/* Sidebar */}
       <Sider
         width={240}
         collapsible
@@ -156,21 +141,14 @@ export default function ClientAppLayout({ children }: { children: ReactNode }) {
             gap: 12,
           }}
         >
-          <AppstoreOutlined
-            style={{ fontSize: "28px", color: currentColors.accent }}
-          />
+          <AppstoreOutlined style={{ fontSize: "28px", color: currentColors.accent }} />
           {!collapsed && (
             <div>
-              <Text
-                strong
-                style={{ color: currentColors.text, fontSize: 16 }}
-              >
+              <Text strong style={{ color: currentColors.text, fontSize: 16 }}>
                 DocuRAG
               </Text>
               <br />
-              <Text
-                style={{ color: currentColors.textSecondary, fontSize: 12 }}
-              >
+              <Text style={{ color: currentColors.textSecondary, fontSize: 12 }}>
                 Advanced Edition
               </Text>
             </div>
@@ -186,34 +164,19 @@ export default function ClientAppLayout({ children }: { children: ReactNode }) {
             {
               key: "todayHeader",
               type: "group",
-              label: (
-                <Text style={{ color: currentColors.textSecondary }}>
-                  Today
-                </Text>
-              ),
+              label: <Text style={{ color: currentColors.textSecondary }}>Today</Text>,
             },
             ...todayConvos,
             {
               key: "prev",
               type: "group",
-              label: (
-                <Text style={{ color: currentColors.textSecondary }}>
-                  Previous 30 Days
-                </Text>
-              ),
+              label: <Text style={{ color: currentColors.textSecondary }}>Previous 30 Days</Text>,
             },
             ...olderConvos,
           ]}
         />
 
-        <div
-          style={{
-            position: "absolute",
-            bottom: 16,
-            width: "100%",
-            paddingInline: 16,
-          }}
-        >
+        <div style={{ position: "absolute", bottom: 16, width: "100%", paddingInline: 16 }}>
           <Button
             block
             type="text"
@@ -241,7 +204,7 @@ export default function ClientAppLayout({ children }: { children: ReactNode }) {
         </div>
       </Sider>
 
-      {/* --- Main Panel --- */}
+      {/* Main Panel */}
       <Layout style={{ background: currentColors.bg }}>
         <Header
           style={{
@@ -261,13 +224,8 @@ export default function ClientAppLayout({ children }: { children: ReactNode }) {
             style={{ fontSize: "16px", color: currentColors.text }}
           />
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            {/* -- Model Selector -- */}
-            <Dropdown
-              menu={menuProps}
-              placement="bottomRight"
-              arrow
-              trigger={["click"]}
-            >
+            {/* Model Selector */}
+            <Dropdown menu={menuProps} placement="bottomRight" arrow trigger={["click"]}>
               <Button
                 size="small"
                 style={{
@@ -280,22 +238,18 @@ export default function ClientAppLayout({ children }: { children: ReactNode }) {
                   gap: 6,
                 }}
               >
-                <span style={{ fontSize: 12 }}>
-                  {selectedModel.label.replace("OpenAI:", "").trim()}
-                </span>
+                <span style={{ fontSize: 12 }}>{selectedModel.label.replace("OpenAI:", "").trim()}</span>
                 <DownOutlined style={{ color: currentColors.textSecondary }} />
               </Button>
             </Dropdown>
 
-            {/* -- Theme Toggle -- */}
+            {/* Theme Toggle */}
             <Switch
               checkedChildren={<SunOutlined />}
               unCheckedChildren={<MoonOutlined />}
               onChange={toggleTheme}
               checked={theme === "light"}
-              style={{
-                background: theme === "light" ? currentColors.primary : "",
-              }}
+              style={{ background: theme === "light" ? currentColors.primary : "" }}
             />
           </div>
         </Header>
@@ -306,27 +260,17 @@ export default function ClientAppLayout({ children }: { children: ReactNode }) {
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            position: "relative",
             background: currentColors.bg,
           }}
         >
           {!hasChatted && (
-            <div
-              style={{
-                maxWidth: 720,
-                textAlign: "center",
-                marginTop: "10vh",
-              }}
-            >
+            <div style={{ maxWidth: 720, textAlign: "center", marginTop: "10vh" }}>
               <Title
                 level={1}
                 style={{
-                  background: `linear-gradient(135deg, ${currentColors.primary} 0%, ${currentColors.accent} 100%)`,
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
+                  ...gradientText,
                   fontSize: "clamp(2.5rem, 5vw, 4rem)",
                   marginBottom: 16,
-                  fontFamily: "'Poppins', sans-serif",
                 }}
               >
                 How can I help you today?
@@ -340,8 +284,7 @@ export default function ClientAppLayout({ children }: { children: ReactNode }) {
                   fontFamily: "'Poppins', sans-serif",
                 }}
               >
-                Leverage powerful AI with a clear, responsive interface. Ready
-                to get started?
+                Leverage powerful AI with a clear, responsive interface. Ready to get started?
               </Text>
 
               <div
@@ -374,7 +317,7 @@ export default function ClientAppLayout({ children }: { children: ReactNode }) {
             </div>
           )}
 
-          {/* ←─── This is where the “chat children” will render. ───→ */}
+          {/* This is where the “children” (your chat UI) will render */}
           {children}
 
           <div style={{ flexGrow: 1 }} />
@@ -403,17 +346,11 @@ export default function ClientAppLayout({ children }: { children: ReactNode }) {
               }}
             >
               <Upload beforeUpload={() => false} multiple showUploadList={false}>
-                <Button
-                  icon={<PlusOutlined />}
-                  type="text"
-                  style={{ color: currentColors.text }}
-                />
+                <Button icon={<PlusOutlined />} type="text" style={{ color: currentColors.text }} />
               </Upload>
               <Input.TextArea
                 autoSize={{ minRows: 1, maxRows: 6 }}
-                placeholder={`Message with ${selectedModel.label
-                  .split(":")[1]
-                  .trim()}`}
+                placeholder={`Message with ${selectedModel.label.split(":")[1].trim()}`}
                 bordered={false}
                 style={{
                   flex: 1,
@@ -441,7 +378,6 @@ export default function ClientAppLayout({ children }: { children: ReactNode }) {
   );
 }
 
-// Reusable card component now receives colors as a prop
 function BenefitCard({
   icon,
   title,
@@ -468,9 +404,7 @@ function BenefitCard({
       bodyStyle={{ padding: 24, textAlign: "center" }}
       hoverable
     >
-      <div style={{ fontSize: 28, color: colors.accent, marginBottom: 12 }}>
-        {icon}
-      </div>
+      <div style={{ fontSize: 28, color: colors.accent, marginBottom: 12 }}>{icon}</div>
       <Text
         strong
         style={{

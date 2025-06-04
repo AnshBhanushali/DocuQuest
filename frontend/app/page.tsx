@@ -3,6 +3,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Layout,
   Typography,
@@ -12,26 +13,33 @@ import {
   Card,
   Upload,
   notification,
+  Spin,
 } from "antd";
 import {
   UploadOutlined,
   FilePdfOutlined,
   SyncOutlined,
-  LockOutlined,
-  RocketOutlined,
   SafetyCertificateOutlined,
   HomeOutlined,
   InfoCircleOutlined,
   DollarOutlined,
   UserAddOutlined,
   TeamOutlined,
+  RocketOutlined,
   DownOutlined,
 } from "@ant-design/icons";
+
+
+
+
+// After successful upload/processing:
+
+
 
 const { Header, Content, Footer } = Layout;
 const { Title, Paragraph, Text } = Typography;
 
-// Single dark‐mode palette
+// — Single dark‐mode palette —
 const colors = {
   bg: "#0a0d14",        // Very dark navy
   surface: "#121724",   // Slightly lighter panel color
@@ -42,26 +50,57 @@ const colors = {
 };
 
 export default function HomePage() {
-  const [fileList, setFileList] = useState<File[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const router = useRouter();
 
-  // Handle file selection; show a notification for now
-  const handleUploadChange = (fileInfo: any) => {
-    const files = fileInfo.fileList.map((f: any) => f.originFileObj).filter(Boolean);
-    setFileList(files);
+  // Called when a file is selected
+  const beforeUploadHandler = async (file: File) => {
+    setIsProcessing(true);
 
-    if (files.length > 0) {
+    // Build FormData
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const resp = await fetch("http://localhost:8000/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!resp.ok) {
+        const errJson = await resp.json().catch(() => ({}));
+        throw new Error(errJson.detail || "Upload failed");
+      }
+
       notification.success({
-        message: "Document Loaded",
-        description: files.map((f: File) => f.name).join(", "),
+        message: "Document processed",
+        description: "Redirecting to chat…",
         placement: "bottomRight",
       });
-      // TODO: Send to backend for RAG processing
+
+      // Give a brief moment for notification to show
+      setTimeout(() => {
+        router.push("/chat");
+      }, 500);
+    } catch (err: any) {
+      console.error(err);
+      notification.error({
+        message: "Upload Error",
+        description: err.message || "Something went wrong during upload.",
+        placement: "bottomRight",
+      });
+      setIsProcessing(false);
     }
+
+    // Prevent automatic Upload behavior:
+    return false;
   };
 
-  // Smooth-scroll to “How It Works” section
+  // Smooth‐scroll to “How It Works” section
   const scrollToHowItWorks = () => {
-    document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" });
+    document
+      .getElementById("how-it-works")
+      ?.scrollIntoView({ behavior: "smooth" });
   };
 
   return (
@@ -117,18 +156,18 @@ export default function HomePage() {
         <div
           style={{
             position: "relative",
-            height: "100vh", // Full viewport height
+            height: "100vh",
             display: "flex",
             flexDirection: "column",
-            justifyContent: "center",  // Vertical centering
-            alignItems: "center",      // Horizontal centering
+            justifyContent: "center",
+            alignItems: "center",
             textAlign: "center",
             padding: "0 16px",
             color: colors.textPrimary,
             overflow: "hidden",
           }}
         >
-          {/* Large, semi‐transparent PDF icon as background decorative element */}
+          {/* Background decorative PDF icon */}
           <FilePdfOutlined
             style={{
               position: "absolute",
@@ -165,31 +204,47 @@ export default function HomePage() {
               zIndex: 1,
             }}
           >
-            Instantly query your documents with an AI assistant that understands
-            your PDFs, DOCXs, or TXTs. Find answers, summaries, and insights in
-            natural language—no manual search needed.
+            Instantly query PDFs, DOCXs, or TXTs. Find answers, summaries, and
+            insights—no manual search needed.
           </Paragraph>
 
-          {/* Three “pillars” text under main heading */}
+          {/* Three “pillars” underneath */}
           <div style={{ display: "flex", gap: 24, marginBottom: 32, zIndex: 1 }}>
-            <Text style={{ color: colors.accent, fontSize: 16, fontWeight: 600 }}>
+            <Text
+              style={{
+                color: colors.accent,
+                fontSize: 16,
+                fontWeight: 600,
+              }}
+            >
               Secure
             </Text>
-            <Text style={{ color: colors.accent, fontSize: 16, fontWeight: 600 }}>
+            <Text
+              style={{
+                color: colors.accent,
+                fontSize: 16,
+                fontWeight: 600,
+              }}
+            >
               Instant
             </Text>
-            <Text style={{ color: colors.accent, fontSize: 16, fontWeight: 600 }}>
+            <Text
+              style={{
+                color: colors.accent,
+                fontSize: 16,
+                fontWeight: 600,
+              }}
+            >
               Intelligent
             </Text>
           </div>
 
-          {/* Upload Button */}
+          {/* Upload Button (triggers beforeUploadHandler) */}
           <Upload
             accept=".pdf,.docx,.txt"
             multiple={false}
             showUploadList={false}
-            beforeUpload={() => false}
-            onChange={handleUploadChange}
+            beforeUpload={beforeUploadHandler}
           >
             <Button
               size="large"
@@ -209,7 +264,7 @@ export default function HomePage() {
             </Button>
           </Upload>
 
-          {/* Down Arrow to scroll to next section */}
+          {/* Down arrow to scroll */}
           <DownOutlined
             onClick={scrollToHowItWorks}
             style={{
@@ -228,6 +283,30 @@ export default function HomePage() {
               (e.currentTarget as any).style.transform = "translateY(0px)";
             }}
           />
+
+          {/* Full‐screen spinner overlay */}
+          {isProcessing && (
+            <div
+              style={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                width: "100%",
+                height: "100%",
+                background: "rgba(0,0,0,0.6)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                zIndex: 2,
+              }}
+            >
+              <Spin
+                tip="Processing your document…"
+                size="large"
+                style={{ color: "#fff" }}
+              />
+            </div>
+          )}
         </div>
 
         {/* ===== How It Works Section ===== */}
@@ -266,13 +345,17 @@ export default function HomePage() {
                 }}
               >
                 <FilePdfOutlined
-                  style={{ fontSize: 48, color: colors.accent, marginBottom: 16 }}
+                  style={{
+                    fontSize: 48,
+                    color: colors.accent,
+                    marginBottom: 16,
+                  }}
                 />
                 <Title level={4} style={{ color: colors.textPrimary }}>
                   Step 1: Upload Your File
                 </Title>
                 <Text style={{ color: colors.textSecondary }}>
-                  Choose any PDF, DOCX, or TXT. We securely index it in seconds.
+                  Choose a PDF, DOCX, or TXT. We securely index it in seconds.
                 </Text>
               </Card>
             </Col>
@@ -296,13 +379,17 @@ export default function HomePage() {
                 }}
               >
                 <SyncOutlined
-                  style={{ fontSize: 48, color: colors.accent, marginBottom: 16 }}
+                  style={{
+                    fontSize: 48,
+                    color: colors.accent,
+                    marginBottom: 16,
+                  }}
                 />
                 <Title level={4} style={{ color: colors.textPrimary }}>
                   Step 2: AI‐Powered Analysis
                 </Title>
                 <Text style={{ color: colors.textSecondary }}>
-                  Our AI engine indexes your document so you can query it instantly.
+                  Our AI indexes your document so you can query instantly.
                 </Text>
               </Card>
             </Col>
@@ -326,13 +413,17 @@ export default function HomePage() {
                 }}
               >
                 <SafetyCertificateOutlined
-                  style={{ fontSize: 48, color: colors.accent, marginBottom: 16 }}
+                  style={{
+                    fontSize: 48,
+                    color: colors.accent,
+                    marginBottom: 16,
+                  }}
                 />
                 <Title level={4} style={{ color: colors.textPrimary }}>
                   Step 3: Ask & Discover
                 </Title>
                 <Text style={{ color: colors.textSecondary }}>
-                  Chat with your document. Receive answers, summaries, and insights instantly.
+                  Chat with your document. Receive answers and insights instantly.
                 </Text>
               </Card>
             </Col>
@@ -371,7 +462,7 @@ export default function HomePage() {
                   Always Current
                 </Title>
                 <Text style={{ color: colors.textSecondary }}>
-                  Models are continuously updated so your answers remain accurate.
+                  Models are continuously updated so answers remain accurate.
                 </Text>
               </Card>
             </Col>
@@ -391,7 +482,7 @@ export default function HomePage() {
                   Enterprise‐Grade Privacy
                 </Title>
                 <Text style={{ color: colors.textSecondary }}>
-                  Your documents remain encrypted and private—always.
+                  Documents remain encrypted and private—always.
                 </Text>
               </Card>
             </Col>
@@ -441,14 +532,13 @@ export default function HomePage() {
               margin: "0 auto 32px",
             }}
           >
-            Join professionals and academics who have streamlined their workflows by
+            Join professionals and academics who have streamlined workflows by
             turning static files into dynamic, conversational experiences.
           </Paragraph>
           <Upload
             accept=".pdf,.docx,.txt"
             showUploadList={false}
-            beforeUpload={() => false}
-            onChange={handleUploadChange}
+            beforeUpload={beforeUploadHandler}
           >
             <Button
               size="large"
@@ -463,7 +553,7 @@ export default function HomePage() {
                 boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
               }}
             >
-              Upload & Explore
+              Upload &amp; Explore
             </Button>
           </Upload>
         </div>
