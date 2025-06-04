@@ -32,6 +32,6 @@
     "components/**/*.tsx",
     "pages/**/*.tsx",
     "pages/**/*.ts"
-  ],
+, "../page.tsx"  ],
   "exclude": ["node_modules"]
 }

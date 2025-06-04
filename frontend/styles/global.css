@@ -1,0 +1,17 @@
+/* styles/globals.css */
+
+/* 1) Load Poppins from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap');
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  background: #0f0f1a;      /* deep cosmic navy background */
+  color: #e0e0e0;           /* light gray text */
+  font-family: 'Poppins', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
