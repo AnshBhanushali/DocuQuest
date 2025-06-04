@@ -1,0 +1,26 @@
+/* app/globals.css */
+
+/* 1) Remove the default white outline on focus for buttons, inputs, and switches */
+button:focus,
+a:focus,
+input:focus,
+.ant-switch:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* 2) Hide the default blue link underline if desired (optional) */
+a {
+  text-decoration: none;
+}
+
+/* 3) Ensure the entire page is full‐viewport height and uses Poppins */
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: 'Poppins', sans-serif;
+  background: #0f0f1a;
+  color: #e0e0e0;
+}

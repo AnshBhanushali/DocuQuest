@@ -1,271 +1,471 @@
 // app/page.tsx
-"use client"; // we need this so that AntD’s Button, Layout, etc. work properly
+"use client";
 
-import React from "react";
-import { Layout, Typography, Button, Row, Col, Card } from "antd";
+import React, { useState } from "react";
+import Link from "next/link";
+import {
+  Layout,
+  Typography,
+  Button,
+  Row,
+  Col,
+  Card,
+  Upload,
+  notification,
+} from "antd";
 import {
   UploadOutlined,
   FilePdfOutlined,
   SyncOutlined,
   LockOutlined,
-  MessageOutlined,
+  RocketOutlined,
+  SafetyCertificateOutlined,
+  HomeOutlined,
+  InfoCircleOutlined,
+  DollarOutlined,
+  UserAddOutlined,
+  TeamOutlined,
+  DownOutlined,
 } from "@ant-design/icons";
 
 const { Header, Content, Footer } = Layout;
-const { Title, Text, Paragraph } = Typography;
+const { Title, Paragraph, Text } = Typography;
+
+// Single dark‐mode palette
+const colors = {
+  bg: "#0a0d14",        // Very dark navy
+  surface: "#121724",   // Slightly lighter panel color
+  accent: "#3b82f6",    // Bright blue accent
+  textPrimary: "#e2e2e2",
+  textSecondary: "#8a8d94",
+  border: "#1f2530",
+};
 
 export default function HomePage() {
+  const [fileList, setFileList] = useState<File[]>([]);
+
+  // Handle file selection; show a notification for now
+  const handleUploadChange = (fileInfo: any) => {
+    const files = fileInfo.fileList.map((f: any) => f.originFileObj).filter(Boolean);
+    setFileList(files);
+
+    if (files.length > 0) {
+      notification.success({
+        message: "Document Loaded",
+        description: files.map((f: File) => f.name).join(", "),
+        placement: "bottomRight",
+      });
+      // TODO: Send to backend for RAG processing
+    }
+  };
+
+  // Smooth-scroll to “How It Works” section
+  const scrollToHowItWorks = () => {
+    document.getElementById("how-it-works")?.scrollIntoView({ behavior: "smooth" });
+  };
+
   return (
-    <Layout style={{ minHeight: "100vh", background: "#0f0f1a" }}>
+    <Layout style={{ minHeight: "100vh", background: colors.bg }}>
       {/* ===== Header ===== */}
       <Header
         style={{
-          background: "#1e1e2a",
+          position: "sticky",
+          top: 0,
+          zIndex: 100,
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          background: colors.surface,
           padding: "0 32px",
-          borderBottom: "1px solid #2a2a3a",
+          borderBottom: `1px solid ${colors.border}`,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.5)",
         }}
       >
-        <Title level={3} style={{ color: "#e0e0e0", margin: 0, fontFamily: "'Poppins', sans-serif" }}>
-          DocuRAG
-        </Title>
-        <div style={{ display: "flex", gap: 16 }}>
-          <Button type="text" style={{ color: "#e0e0e0", fontFamily: "'Poppins', sans-serif" }}>
-            Home
-          </Button>
-          <Button type="text" style={{ color: "#e0e0e0", fontFamily: "'Poppins', sans-serif" }}>
-            Features
-          </Button>
-          <Button type="text" style={{ color: "#e0e0e0", fontFamily: "'Poppins', sans-serif" }}>
-            Pricing
-          </Button>
-          <Button
-            type="primary"
-            style={{
-              background: "#00ffff",
-              borderColor: "#00ffff",
-              color: "#000",
-              fontFamily: "'Poppins', sans-serif",
-            }}
-          >
-            Sign Up
-          </Button>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <HomeOutlined style={{ fontSize: 26, color: colors.accent }} />
+          <Title level={3} style={{ color: colors.textPrimary, margin: 0 }}>
+            DocuQuest
+          </Title>
         </div>
+        <nav style={{ display: "flex", alignItems: "center", gap: 24 }}>
+          <Link href="/" style={{ color: colors.textPrimary, fontSize: 16 }}>
+            <HomeOutlined /> Home
+          </Link>
+          <Link
+            href="#how-it-works"
+            style={{ color: colors.textPrimary, fontSize: 16 }}
+          >
+            <InfoCircleOutlined /> How It Works
+          </Link>
+          <Link
+            href="#benefits"
+            style={{ color: colors.textPrimary, fontSize: 16 }}
+          >
+            <TeamOutlined /> Benefits
+          </Link>
+          <Link
+            href="#start"
+            style={{ color: colors.textPrimary, fontSize: 16 }}
+          >
+            <RocketOutlined /> Get Started
+          </Link>
+        </nav>
       </Header>
 
-      {/* ===== Hero Section ===== */}
-      <Content style={{ background: "#0f0f1a" }}>
+      {/* ===== Hero Section (Full Screen) ===== */}
+      <Content style={{ background: colors.bg }}>
         <div
           style={{
-            maxWidth: 1000,
-            margin: "0 auto",
+            position: "relative",
+            height: "100vh", // Full viewport height
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",  // Vertical centering
+            alignItems: "center",      // Horizontal centering
             textAlign: "center",
-            padding: "100px 16px 60px 16px",
+            padding: "0 16px",
+            color: colors.textPrimary,
+            overflow: "hidden",
           }}
         >
+          {/* Large, semi‐transparent PDF icon as background decorative element */}
+          <FilePdfOutlined
+            style={{
+              position: "absolute",
+              top: "1%",
+              left: "50%",
+              transform: "translateX(-50%)",
+              fontSize: "20rem",
+              color: colors.accent,
+              opacity: 0.05,
+              pointerEvents: "none",
+            }}
+          />
+
+          {/* Main Hero Text */}
           <Title
             level={1}
             style={{
-              background: "linear-gradient(135deg, #8a2be2 0%, #00ffff 100%)",
+              background: `linear-gradient(135deg, ${colors.accent} 0%, #59e0ff 100%)`,
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
               fontSize: "clamp(2.5rem, 6vw, 4rem)",
-              fontFamily: "'Poppins', sans-serif",
+              marginBottom: 16,
+              zIndex: 1,
             }}
           >
-            Chat with Your PDFs
+            Conversational Document Explorer
           </Title>
           <Paragraph
             style={{
-              color: "#a0a0b0",
+              color: colors.textSecondary,
               fontSize: 18,
               maxWidth: 700,
-              margin: "16px auto",
-              fontFamily: "'Poppins', sans-serif",
+              margin: "0 auto 32px",
+              zIndex: 1,
             }}
           >
-            Unlock the power of your documents with AI-driven conversations. Get
-            instant answers and insights from your PDFs.
+            Instantly query your documents with an AI assistant that understands
+            your PDFs, DOCXs, or TXTs. Find answers, summaries, and insights in
+            natural language—no manual search needed.
           </Paragraph>
-          <Button
-            size="large"
-            type="primary"
-            icon={<UploadOutlined />}
-            style={{
-              background: "#00ffff",
-              borderColor: "#00ffff",
-              color: "#000",
-              fontSize: 16,
-              padding: "12px 32px",
-              fontFamily: "'Poppins', sans-serif",
-            }}
+
+          {/* Three “pillars” text under main heading */}
+          <div style={{ display: "flex", gap: 24, marginBottom: 32, zIndex: 1 }}>
+            <Text style={{ color: colors.accent, fontSize: 16, fontWeight: 600 }}>
+              Secure
+            </Text>
+            <Text style={{ color: colors.accent, fontSize: 16, fontWeight: 600 }}>
+              Instant
+            </Text>
+            <Text style={{ color: colors.accent, fontSize: 16, fontWeight: 600 }}>
+              Intelligent
+            </Text>
+          </div>
+
+          {/* Upload Button */}
+          <Upload
+            accept=".pdf,.docx,.txt"
+            multiple={false}
+            showUploadList={false}
+            beforeUpload={() => false}
+            onChange={handleUploadChange}
           >
-            Upload PDF
-          </Button>
+            <Button
+              size="large"
+              type="primary"
+              icon={<UploadOutlined />}
+              style={{
+                background: colors.accent,
+                borderColor: colors.accent,
+                color: "#000",
+                fontSize: 16,
+                padding: "12px 40px",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                zIndex: 1,
+              }}
+            >
+              Browse Document
+            </Button>
+          </Upload>
+
+          {/* Down Arrow to scroll to next section */}
+          <DownOutlined
+            onClick={scrollToHowItWorks}
+            style={{
+              position: "absolute",
+              bottom: 32,
+              fontSize: "2rem",
+              color: colors.textSecondary,
+              cursor: "pointer",
+              zIndex: 1,
+              transition: "transform 0.2s ease",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as any).style.transform = "translateY(5px)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as any).style.transform = "translateY(0px)";
+            }}
+          />
         </div>
 
-        {/* ===== Key Features Section ===== */}
+        {/* ===== How It Works Section ===== */}
         <div
+          id="how-it-works"
           style={{
-            maxWidth: 1000,
-            margin: "0 auto 80px auto",
-            padding: "0 16px",
+            background: colors.surface,
+            padding: "60px 16px",
+            textAlign: "center",
           }}
         >
           <Title
             level={2}
-            style={{ color: "#e0e0e0", textAlign: "center", marginBottom: 32, fontFamily: "'Poppins', sans-serif" }}
+            style={{ color: colors.textPrimary, marginBottom: 24 }}
           >
-            Key Features
+            How It Works
           </Title>
           <Row gutter={[24, 24]} justify="center">
-            <Col xs={24} sm={12} md={6}>
+            <Col xs={24} sm={12} md={8}>
               <Card
                 style={{
-                  background: "#1e1e2a",
-                  border: "1px solid #2a2a3a",
-                  borderRadius: 8,
+                  background: colors.bg,
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: 10,
+                  textAlign: "center",
+                  padding: "24px 16px",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+                  transition: "transform 0.2s ease",
                 }}
-                bodyStyle={{ textAlign: "center", padding: 24 }}
                 hoverable
-              >
-                <MessageOutlined
-                  style={{ fontSize: 32, color: "#00ffff", marginBottom: 12 }}
-                />
-                <Title
-                  level={4}
-                  style={{ color: "#e0e0e0", fontFamily: "'Poppins', sans-serif" }}
-                >
-                  Interactive Chat
-                </Title>
-                <Text style={{ color: "#a0a0b0", fontFamily: "'Poppins', sans-serif" }}>
-                  Engage in natural conversations with your PDFs, asking
-                  questions and receiving instant responses.
-                </Text>
-              </Card>
-            </Col>
-
-            <Col xs={24} sm={12} md={6}>
-              <Card
-                style={{
-                  background: "#1e1e2a",
-                  border: "1px solid #2a2a3a",
-                  borderRadius: 8,
+                onMouseEnter={(e) => {
+                  (e.currentTarget as any).style.transform = "translateY(-4px)";
                 }}
-                bodyStyle={{ textAlign: "center", padding: 24 }}
-                hoverable
+                onMouseLeave={(e) => {
+                  (e.currentTarget as any).style.transform = "translateY(0)";
+                }}
               >
                 <FilePdfOutlined
-                  style={{ fontSize: 32, color: "#00ffff", marginBottom: 12 }}
+                  style={{ fontSize: 48, color: colors.accent, marginBottom: 16 }}
                 />
-                <Title
-                  level={4}
-                  style={{ color: "#e0e0e0", fontFamily: "'Poppins', sans-serif" }}
-                >
-                  Multiple PDFs
+                <Title level={4} style={{ color: colors.textPrimary }}>
+                  Step 1: Upload Your File
                 </Title>
-                <Text style={{ color: "#a0a0b0", fontFamily: "'Poppins', sans-serif" }}>
-                  Upload and analyze multiple PDFs simultaneously,
-                  cross-referencing information effortlessly.
+                <Text style={{ color: colors.textSecondary }}>
+                  Choose any PDF, DOCX, or TXT. We securely index it in seconds.
                 </Text>
               </Card>
             </Col>
-
-            <Col xs={24} sm={12} md={6}>
+            <Col xs={24} sm={12} md={8}>
               <Card
                 style={{
-                  background: "#1e1e2a",
-                  border: "1px solid #2a2a3a",
-                  borderRadius: 8,
+                  background: colors.bg,
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: 10,
+                  textAlign: "center",
+                  padding: "24px 16px",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+                  transition: "transform 0.2s ease",
                 }}
-                bodyStyle={{ textAlign: "center", padding: 24 }}
                 hoverable
+                onMouseEnter={(e) => {
+                  (e.currentTarget as any).style.transform = "translateY(-4px)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as any).style.transform = "translateY(0)";
+                }}
               >
                 <SyncOutlined
-                  style={{ fontSize: 32, color: "#00ffff", marginBottom: 12 }}
+                  style={{ fontSize: 48, color: colors.accent, marginBottom: 16 }}
                 />
-                <Title
-                  level={4}
-                  style={{ color: "#e0e0e0", fontFamily: "'Poppins', sans-serif" }}
-                >
-                  Fast Processing
+                <Title level={4} style={{ color: colors.textPrimary }}>
+                  Step 2: AI‐Powered Analysis
                 </Title>
-                <Text style={{ color: "#a0a0b0", fontFamily: "'Poppins', sans-serif" }}>
-                  Experience lightning-fast document processing and response
-                  times powered by advanced AI.
+                <Text style={{ color: colors.textSecondary }}>
+                  Our AI engine indexes your document so you can query it instantly.
                 </Text>
               </Card>
             </Col>
-
-            <Col xs={24} sm={12} md={6}>
+            <Col xs={24} sm={12} md={8}>
               <Card
                 style={{
-                  background: "#1e1e2a",
-                  border: "1px solid #2a2a3a",
-                  borderRadius: 8,
+                  background: colors.bg,
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: 10,
+                  textAlign: "center",
+                  padding: "24px 16px",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.4)",
+                  transition: "transform 0.2s ease",
                 }}
-                bodyStyle={{ textAlign: "center", padding: 24 }}
                 hoverable
+                onMouseEnter={(e) => {
+                  (e.currentTarget as any).style.transform = "translateY(-4px)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as any).style.transform = "translateY(0)";
+                }}
               >
-                <LockOutlined
-                  style={{ fontSize: 32, color: "#00ffff", marginBottom: 12 }}
+                <SafetyCertificateOutlined
+                  style={{ fontSize: 48, color: colors.accent, marginBottom: 16 }}
                 />
-                <Title
-                  level={4}
-                  style={{ color: "#e0e0e0", fontFamily: "'Poppins', sans-serif" }}
-                >
-                  Secure & Private
+                <Title level={4} style={{ color: colors.textPrimary }}>
+                  Step 3: Ask & Discover
                 </Title>
-                <Text style={{ color: "#a0a0b0", fontFamily: "'Poppins', sans-serif" }}>
-                  Your documents are encrypted and processed securely, ensuring
-                  your data remains private.
+                <Text style={{ color: colors.textSecondary }}>
+                  Chat with your document. Receive answers, summaries, and insights instantly.
                 </Text>
               </Card>
             </Col>
           </Row>
         </div>
 
-        {/* ===== CTA Footer Section ===== */}
+        {/* ===== Benefits Section ===== */}
         <div
+          id="benefits"
           style={{
-            background: "#1a1b22",
+            background: colors.bg,
             padding: "60px 16px",
             textAlign: "center",
-            marginTop: 40,
           }}
         >
-          <Title level={2} style={{ color: "#e0e0e0", marginBottom: 16, fontFamily: "'Poppins', sans-serif" }}>
-            Ready to Chat with Your PDFs?
+          <Title
+            level={2}
+            style={{ color: colors.textPrimary, marginBottom: 24 }}
+          >
+            Why DocuQuest?
+          </Title>
+          <Row gutter={[24, 24]} justify="center">
+            <Col xs={24} sm={12} md={8}>
+              <Card
+                style={{
+                  background: colors.surface,
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: 10,
+                  textAlign: "center",
+                  padding: "24px 16px",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                }}
+                hoverable
+              >
+                <Title level={4} style={{ color: colors.accent }}>
+                  Always Current
+                </Title>
+                <Text style={{ color: colors.textSecondary }}>
+                  Models are continuously updated so your answers remain accurate.
+                </Text>
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} md={8}>
+              <Card
+                style={{
+                  background: colors.surface,
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: 10,
+                  textAlign: "center",
+                  padding: "24px 16px",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                }}
+                hoverable
+              >
+                <Title level={4} style={{ color: colors.accent }}>
+                  Enterprise‐Grade Privacy
+                </Title>
+                <Text style={{ color: colors.textSecondary }}>
+                  Your documents remain encrypted and private—always.
+                </Text>
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} md={8}>
+              <Card
+                style={{
+                  background: colors.surface,
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: 10,
+                  textAlign: "center",
+                  padding: "24px 16px",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
+                }}
+                hoverable
+              >
+                <Title level={4} style={{ color: colors.accent }}>
+                  Format Agnostic
+                </Title>
+                <Text style={{ color: colors.textSecondary }}>
+                  Supports PDF, DOCX, TXT, and more—one tool for all your files.
+                </Text>
+              </Card>
+            </Col>
+          </Row>
+        </div>
+
+        {/* ===== Call‐to‐Action Section ===== */}
+        <div
+          id="start"
+          style={{
+            background: colors.surface,
+            padding: "80px 16px",
+            textAlign: "center",
+          }}
+        >
+          <Title
+            level={2}
+            style={{ color: colors.textPrimary, marginBottom: 24 }}
+          >
+            Ready to Transform Your Documents?
           </Title>
           <Paragraph
             style={{
-              color: "#a0a0b0",
+              color: colors.textSecondary,
               fontSize: 16,
               maxWidth: 600,
-              margin: "0 auto 24px",
-              fontFamily: "'Poppins', sans-serif",
+              margin: "0 auto 32px",
             }}
           >
-            Join thousands of professionals and students who are already
-            benefiting from AI-powered document interactions.
+            Join professionals and academics who have streamlined their workflows by
+            turning static files into dynamic, conversational experiences.
           </Paragraph>
-          <Button
-            size="large"
-            type="primary"
-            icon={<UploadOutlined />}
-            style={{
-              background: "#00ffff",
-              borderColor: "#00ffff",
-              color: "#000",
-              fontSize: 16,
-              padding: "12px 32px",
-              fontFamily: "'Poppins', sans-serif",
-            }}
+          <Upload
+            accept=".pdf,.docx,.txt"
+            showUploadList={false}
+            beforeUpload={() => false}
+            onChange={handleUploadChange}
           >
-            Start Now
-          </Button>
+            <Button
+              size="large"
+              type="primary"
+              icon={<UploadOutlined />}
+              style={{
+                background: colors.accent,
+                borderColor: colors.accent,
+                color: "#000",
+                fontSize: 16,
+                padding: "12px 40px",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+              }}
+            >
+              Upload & Explore
+            </Button>
+          </Upload>
         </div>
       </Content>
 
@@ -273,14 +473,13 @@ export default function HomePage() {
       <Footer
         style={{
           textAlign: "center",
-          background: "#0f0f1a",
-          borderTop: "1px solid #2a2a3a",
-          padding: "16px 0",
+          background: colors.bg,
+          borderTop: `1px solid ${colors.border}`,
+          padding: "24px 0",
+          color: colors.textSecondary,
         }}
       >
-        <Text style={{ color: "#a0a0b0", fontFamily: "'Poppins', sans-serif" }}>
-          © {new Date().getFullYear()} DocuRAG. All rights reserved.
-        </Text>
+        © {new Date().getFullYear()} DocuQuest. All rights reserved.
       </Footer>
     </Layout>
   );
