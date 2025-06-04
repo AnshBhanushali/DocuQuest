@@ -1,3 +1,4 @@
+
 # main.py
 
 import os
@@ -70,7 +71,7 @@ class QueryRequest(BaseModel):
 
 class QueryResponse(BaseModel):
     answer: str
-    citations: List[Dict[str, str]]  # e.g. [{ "source": "doc.pdf", "chunk_index": 2 }, ...]
+    citations: List[Dict[str, str]]  # both source and chunk_index are strings
 
 
 # ---------- Utility Functions ----------
@@ -227,7 +228,6 @@ async def upload_document(file: UploadFile = File(...)):
         })
         documents.append(chunk)
 
-    # Add (will overwrite if ID already exists)
     collection.add(
         ids=ids,
         metadatas=metadatas,
@@ -298,8 +298,9 @@ async def query_document(q: QueryRequest):
         raise HTTPException(status_code=500, detail=f"ChatCompletion failed: {e}")
 
     citations = [
-        {"source": rc["source"], "chunk_index": rc["chunk_index"]}
+        {"source": rc["source"], "chunk_index": str(rc["chunk_index"])}
         for rc in relevant_chunks
     ]
 
     return {"answer": answer, "citations": citations}
+
