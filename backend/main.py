@@ -299,6 +299,7 @@ async def upload_document(file: UploadFile = File(...)):
 # ─── 11. /query Endpoint ─────────────────────────────────────────────────────
 @app.post("/query", response_model=QueryResponse)
 async def query_document(q: QueryRequest):
+    print(f"➡️  /query called with question={q.question!r}, top_k={q.top_k}", flush=True)
     question = q.question.strip()
     if not question:
         raise HTTPException(status_code=400, detail="Question must not be empty")
