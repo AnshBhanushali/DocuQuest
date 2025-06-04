@@ -1,7 +1,7 @@
 # main.py
 import os
 import io
-from typing import List, Dict, Any
+from typing import List
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,7 +17,6 @@ import docx
 load_dotenv()
 
 # Make sure your OPENAI_API_KEY is set in the environment:
-# export OPENAI_API_KEY="sk-..."
 openai.api_key = os.getenv("OPENAI_API_KEY")
 if not openai.api_key:
     raise RuntimeError("OPENAI_API_KEY environment variable is missing")
@@ -42,12 +41,14 @@ class ChunkWithEmbedding(BaseModel):
     chunk_index: int
     text: str
     original_language: str
-    embedding: List[float]  
+    embedding: List[float]  # embedding vector
+
 
 class UploadResponse(BaseModel):
     filename: str
     total_chunks: int
     chunks: List[ChunkWithEmbedding]
+
 
 # ---------- Utility Functions ----------
 
@@ -62,16 +63,19 @@ def extract_text_from_pdf(file_stream: io.BytesIO) -> str:
             continue
     return "\n".join(text)
 
+
 def extract_text_from_docx(file_stream: io.BytesIO) -> str:
     """Extracts text from a DOCX file."""
     doc = docx.Document(file_stream)
     paragraphs = [p.text for p in doc.paragraphs if p.text]
     return "\n".join(paragraphs)
 
+
 def extract_text_from_txt(file_stream: io.BytesIO) -> str:
     """Extracts text from a plain text file."""
     content = file_stream.read().decode("utf-8", errors="ignore")
     return content
+
 
 def detect_language_of_text(text: str) -> str:
     """Uses langdetect to guess the language of given text."""
@@ -81,12 +85,12 @@ def detect_language_of_text(text: str) -> str:
         lang = "unknown"
     return lang
 
+
 async def translate_to_english(text: str) -> str:
     """
     If text is not English, call OpenAI ChatCompletion with a translate prompt.
     Returns English text.
     """
-    # We send the entire chunk for translation. In production you might chunk large docs first.
     prompt = (
         "Translate the following text to fluent English. "
         "Maintain meaning exactly. "
@@ -101,13 +105,13 @@ async def translate_to_english(text: str) -> str:
                 {"role": "user", "content": prompt},
             ],
             temperature=0.0,
-            max_tokens=  len(text.split()) * 2,  # allow enough tokens for translation
+            max_tokens=len(text.split()) * 2,  # allow enough tokens for translation
         )
         translation = resp.choices[0].message.content.strip()
         return translation
-    except Exception as e:
-        # If translation fails, just return the original
+    except Exception:
         return text
+
 
 def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 200) -> List[str]:
     """
@@ -121,9 +125,9 @@ def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 200) -> List[st
         end = min(start + chunk_size, text_length)
         chunk = text[start:end]
         chunks.append(chunk)
-        # Move start forward by chunk_size - overlap
         start += chunk_size - overlap
     return chunks
+
 
 def get_embeddings_for_chunks(chunks: List[str]) -> List[List[float]]:
     """
@@ -133,6 +137,7 @@ def get_embeddings_for_chunks(chunks: List[str]) -> List[List[float]]:
     embedder = OpenAIEmbeddings(model="text-embedding-3-small")
     embeddings = embedder.embed_documents(chunks)
     return embeddings
+
 
 # ---------- /upload Endpoint ----------
 
@@ -172,10 +177,7 @@ async def upload_document(file: UploadFile = File(...)):
 
     # If not English ("en"), translate entire raw_text to English
     if detected_lang != "en":
-        # You could also partition text into smaller pieces here before translation,
-        # but we just translate the full text in one call for simplicity.
         raw_text = await translate_to_english(raw_text)
-        # After translation, we assume text is now English
         original_language = detected_lang
     else:
         original_language = "en"
@@ -188,11 +190,11 @@ async def upload_document(file: UploadFile = File(...)):
 
     # Build response data
     response_chunks = []
-    for idx, (chunk_text, emb_vec) in enumerate(zip(chunk_list, embeddings)):
+    for idx, (c, emb_vec) in enumerate(zip(chunk_list, embeddings)):
         response_chunks.append(
             ChunkWithEmbedding(
                 chunk_index=idx,
-                text=chunk_text,
+                text=c,
                 original_language=original_language,
                 embedding=emb_vec,
             )
