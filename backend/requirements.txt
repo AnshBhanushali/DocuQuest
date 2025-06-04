@@ -6,3 +6,4 @@ python-docx
 openai
 faiss-cpu
 transformers
+langdetect
