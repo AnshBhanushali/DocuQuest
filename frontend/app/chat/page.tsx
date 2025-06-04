@@ -28,7 +28,7 @@ export default function ChatPage() {
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Scroll‐to‐bottom whenever messages change
+  // Ensure the chat history container scrolls to bottom on new messages
   const listContainerRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     if (listContainerRef.current) {
@@ -36,19 +36,20 @@ export default function ChatPage() {
     }
   }, [messages]);
 
+  // Use your deployed backend URL via environment variable
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
   const sendQuestion = async () => {
     const question = inputText.trim();
     if (!question) return;
 
-    // 1) Append user's question immediately
+    // 1) Immediately append user's question
     setMessages((prev) => [...prev, { sender: "user", text: question }]);
     setInputText("");
     setLoading(true);
 
     try {
-      // 2) Hit your backend /query endpoint
+      // 2) Call the backend /query endpoint
       const resp = await fetch(`${API_URL}/query`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -61,13 +62,13 @@ export default function ChatPage() {
       }
 
       const data = await resp.json();
-      // 3) Append the assistant’s answer
+      // 3) Append assistant’s answer
       setMessages((prev) => [
         ...prev,
         { sender: "assistant", text: data.answer },
       ]);
 
-      // 4) Append citations if any
+      // 4) Append citations, if present
       if (Array.isArray(data.citations) && data.citations.length > 0) {
         const citationTexts = data.citations.map(
           (c: { source: string; chunk_index: string }) =>
@@ -94,7 +95,7 @@ export default function ChatPage() {
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
-      {/* ===== Sidebar ===== */}
+      {/* Sidebar */}
       <Sider
         collapsible
         collapsed={collapsed}
@@ -163,9 +164,9 @@ export default function ChatPage() {
         />
       </Sider>
 
-      {/* ===== Main Layout ===== */}
+      {/* Main Layout */}
       <Layout style={{ background: "#0f0f1a" }}>
-        {/* ===== Header ===== */}
+        {/* Header */}
         <Header
           style={{
             background: "#1e1e2a",
@@ -187,7 +188,7 @@ export default function ChatPage() {
           </Title>
         </Header>
 
-        {/* ===== Content (Messages List) ===== */}
+        {/* Content (Messages List) */}
         <Content
           style={{
             padding: "16px",
@@ -196,7 +197,6 @@ export default function ChatPage() {
             height: "calc(100vh - 128px)", // account for header + footer
           }}
         >
-          {/* Messages Container */}
           <div
             ref={listContainerRef}
             style={{
@@ -239,14 +239,14 @@ export default function ChatPage() {
             />
           </div>
 
-          {/* “Thinking…” Spinner */}
+          {/* Loading Spinner */}
           {loading && (
             <div style={{ textAlign: "center", marginBottom: 16 }}>
               <Spin tip="Thinking…" />
             </div>
           )}
 
-          {/* ===== Input Area ===== */}
+          {/* Input Area */}
           <div
             style={{
               display: "flex",
@@ -289,7 +289,7 @@ export default function ChatPage() {
           </div>
         </Content>
 
-        {/* ===== Footer ===== */}
+        {/* Footer */}
         <Footer
           style={{
             textAlign: "center",
