@@ -1,41 +1,52 @@
+# main.py
+
 import os
 import io
-from typing import List
+from typing import List, Dict
 
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from langdetect import detect
 import openai
-from langchain.embeddings.openai import OpenAIEmbeddings
-from langchain.vectorstores import Chroma
-from langchain.llms import OpenAI
-from langchain.chains import RetrievalQA
 from dotenv import load_dotenv
 
 import PyPDF2
 import docx
+import chromadb
+from chromadb.config import Settings
 
+# 1. Load environment (including OPENAI_API_KEY)
 load_dotenv()
-
-# Make sure your OPENAI_API_KEY is set in the environment:
 openai.api_key = os.getenv("OPENAI_API_KEY")
 if not openai.api_key:
     raise RuntimeError("OPENAI_API_KEY environment variable is missing")
 
+# 2. Initialize FastAPI
 app = FastAPI(
     title="Document RAG Backend",
-    description="Upload docs, translate if needed, chunk, embed, and query via OpenAIEmbeddings + ChromaDB",
-    version="0.1.0",
+    description="Upload docs, translate if needed, chunk, embed + store in ChromaDB, and query with citations",
+    version="0.2.0",
 )
 
-# Allow CORS from localhost:3000
+# 3. Allow CORS from our frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 4. Initialize ChromaDB client & collection
+#    Embeddings and metadata persist under ./chroma_db
+chroma_client = chromadb.Client(
+    Settings(
+        persist_directory="chroma_db",
+        anonymized_telemetry=False,
+    )
+)
+collection = chroma_client.get_or_create_collection(name="documents")
+
 
 # ---------- Pydantic Models ----------
 
@@ -45,18 +56,22 @@ class ChunkWithEmbedding(BaseModel):
     original_language: str
     embedding: List[float]
 
+
 class UploadResponse(BaseModel):
     filename: str
     total_chunks: int
     chunks: List[ChunkWithEmbedding]
 
+
 class QueryRequest(BaseModel):
     question: str
+    top_k: int = 3  # number of chunks to retrieve for context
 
-# ---------- Setup Embedding Model and Vector Store ----------
 
-embedding_model = OpenAIEmbeddings(model="text-embedding-3-small")
-vectordb = Chroma(persist_directory="db", embedding_function=embedding_model)
+class QueryResponse(BaseModel):
+    answer: str
+    citations: List[Dict[str, str]]  # e.g. [{ "source": "doc.pdf", "chunk_index": 2 }, ...]
+
 
 # ---------- Utility Functions ----------
 
@@ -70,20 +85,23 @@ def extract_text_from_pdf(file_stream: io.BytesIO) -> str:
             continue
     return "\n".join(text)
 
+
 def extract_text_from_docx(file_stream: io.BytesIO) -> str:
     doc = docx.Document(file_stream)
     paragraphs = [p.text for p in doc.paragraphs if p.text]
     return "\n".join(paragraphs)
 
+
 def extract_text_from_txt(file_stream: io.BytesIO) -> str:
-    content = file_stream.read().decode("utf-8", errors="ignore")
-    return content
+    return file_stream.read().decode("utf-8", errors="ignore")
+
 
 def detect_language_of_text(text: str) -> str:
     try:
         return detect(text[:2000])
     except Exception:
         return "unknown"
+
 
 async def translate_to_english(text: str) -> str:
     prompt = (
@@ -93,7 +111,7 @@ async def translate_to_english(text: str) -> str:
         f"{text}"
     )
     try:
-        resp = openai.ChatCompletion.create(
+        resp = openai.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are a translation engine."},
@@ -106,25 +124,62 @@ async def translate_to_english(text: str) -> str:
     except Exception:
         return text
 
+
 def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 200) -> List[str]:
     chunks = []
     start = 0
-    text_length = len(text)
-    while start < text_length:
-        end = min(start + chunk_size, text_length)
+    length = len(text)
+    while start < length:
+        end = min(start + chunk_size, length)
         chunks.append(text[start:end])
         start += chunk_size - overlap
     return chunks
 
+
 def get_embeddings_for_chunks(chunks: List[str]) -> List[List[float]]:
-    embedder = OpenAIEmbeddings(model="text-embedding-3-small")
-    return embedder.embed_documents(chunks)
+    """
+    Generate embeddings by calling OpenAI’s v1-style SDK.
+    """
+    model_name = "text-embedding-3-small"
+    batch_size = 8
+    all_embeddings = []
+    for i in range(0, len(chunks), batch_size):
+        batch = chunks[i : i + batch_size]
+        resp = openai.embeddings.create(model=model_name, input=batch)
+        for data_obj in resp.data:
+            all_embeddings.append(data_obj.embedding)
+    return all_embeddings
+
+
+def build_answer_prompt(question: str, relevant_chunks: List[Dict]) -> str:
+    """
+    Build a prompt that instructs the LLM to answer using only the provided chunks.
+    Each chunk dict has: 'text', 'source', 'chunk_index'.
+    """
+    context_parts = []
+    for c in relevant_chunks:
+        context_parts.append(
+            f"(source: {c['source']} – chunk #{c['chunk_index']})\n{c['text']}\n"
+        )
+    context_str = "\n---\n".join(context_parts)
+
+    prompt = (
+        "You are an AI assistant. Use ONLY the following context to answer the user’s question. "
+        "Cite each piece of evidence in parentheses like this: “(source: filename.pdf – chunk #3)”.\n\n"
+        "Context:\n"
+        f"{context_str}\n\n"
+        "Question:\n"
+        f"{question}\n\n"
+        "Answer (include citations):"
+    )
+    return prompt
+
 
 # ---------- /upload Endpoint ----------
 
 @app.post("/upload", response_model=UploadResponse)
 async def upload_document(file: UploadFile = File(...)):
-    filename = file.filename
+    filename = file.filename or ""
     if not filename:
         raise HTTPException(status_code=400, detail="No filename provided")
 
@@ -142,66 +197,109 @@ async def upload_document(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail=f"Unsupported file type: {ext}")
 
     if not raw_text.strip():
-        raise HTTPException(status_code=400, detail="Could not extract any text from the document")
+        raise HTTPException(status_code=400, detail="No extractable text in document")
 
+    # Detect and translate if not English
     detected_lang = detect_language_of_text(raw_text)
     if detected_lang != "en":
         raw_text = await translate_to_english(raw_text)
-        original_language = detected_lang
+        original_lang = detected_lang
     else:
-        original_language = "en"
+        original_lang = "en"
 
+    # Chunk the (possibly translated) text
     chunk_list = chunk_text(raw_text, chunk_size=1000, overlap=200)
+
+    # Generate embeddings
     embeddings = get_embeddings_for_chunks(chunk_list)
 
-    # Store into Chroma
-    vectordb.add_texts(
-        texts=chunk_list,
-        metadatas=[
-            {"source": filename, "chunk_index": i, "original_language": original_language}
-            for i in range(len(chunk_list))
-        ]
+    # Upsert into ChromaDB
+    ids = []
+    metadatas = []
+    documents = []
+    for idx, chunk in enumerate(chunk_list):
+        chunk_id = f"{filename}_chunk_{idx}"
+        ids.append(chunk_id)
+        metadatas.append({
+            "source": filename,
+            "chunk_index": idx,
+            "original_language": original_lang
+        })
+        documents.append(chunk)
+
+    # Add (will overwrite if ID already exists)
+    collection.add(
+        ids=ids,
+        metadatas=metadatas,
+        documents=documents,
+        embeddings=embeddings,
     )
 
     response_chunks = []
-    for idx, (c, emb_vec) in enumerate(zip(chunk_list, embeddings)):
-        response_chunks.append(
-            ChunkWithEmbedding(
-                chunk_index=idx,
-                text=c,
-                original_language=original_language,
-                embedding=emb_vec,
-            )
-        )
+    for idx, (c, emb) in enumerate(zip(chunk_list, embeddings)):
+        response_chunks.append({
+            "chunk_index": idx,
+            "text": c,
+            "original_language": original_lang,
+            "embedding": emb,
+        })
 
-    return UploadResponse(
-        filename=filename,
-        total_chunks=len(response_chunks),
-        chunks=response_chunks,
-    )
+    return {
+        "filename": filename,
+        "total_chunks": len(response_chunks),
+        "chunks": response_chunks,
+    }
+
 
 # ---------- /query Endpoint ----------
 
-@app.post("/query")
-async def query_docs(req: QueryRequest):
-    retriever = vectordb.as_retriever(search_kwargs={"k": 3})
-    qa_chain = RetrievalQA.from_chain_type(
-        llm=OpenAI(temperature=0),
-        chain_type="stuff",
-        retriever=retriever,
-        return_source_documents=True
+@app.post("/query", response_model=QueryResponse)
+async def query_document(q: QueryRequest):
+    question = q.question.strip()
+    if not question:
+        raise HTTPException(status_code=400, detail="Question must not be empty")
+
+    # 1. Create embedding for the question
+    resp = openai.embeddings.create(model="text-embedding-3-small", input=[question])
+    question_embedding = resp.data[0].embedding
+
+    # 2. Query Chroma for top_k similar chunks
+    results = collection.query(
+        query_embeddings=[question_embedding],
+        n_results=q.top_k,
+        include=["metadatas", "documents"]
     )
 
-    result = qa_chain(req.question)
+    metadatas = results["metadatas"][0]  # list of metadata dicts
+    docs = results["documents"][0]        # list of chunk texts
 
-    return {
-        "answer": result["result"],
-        "citations": [
-            {
-                "source": doc.metadata.get("source", "unknown"),
-                "chunk_index": doc.metadata.get("chunk_index", -1),
-                "content": doc.page_content
-            }
-            for doc in result["source_documents"]
-        ]
-    }
+    relevant_chunks = []
+    for md, chunk_text in zip(metadatas, docs):
+        relevant_chunks.append({
+            "source": md.get("source", "unknown"),
+            "chunk_index": md.get("chunk_index", -1),
+            "text": chunk_text
+        })
+
+    prompt = build_answer_prompt(question, relevant_chunks)
+
+    try:
+        chat_resp = openai.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a helpful AI assistant."},
+                {"role": "user", "content": prompt},
+            ],
+            max_tokens=512,
+            temperature=0.2,
+        )
+        answer = chat_resp.choices[0].message.content.strip()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"ChatCompletion failed: {e}")
+
+    citations = [
+        {"source": rc["source"], "chunk_index": rc["chunk_index"]}
+        for rc in relevant_chunks
+    ]
+
+    return {"answer": answer, "citations": citations}
