@@ -11,6 +11,7 @@ import {
   Input,
   Card,
   Upload,
+  Switch,
 } from "antd";
 import {
   SendOutlined,
@@ -24,105 +25,160 @@ import {
   PlusOutlined,
   DownOutlined,
   AppstoreOutlined,
+  SunOutlined,
+  MoonOutlined,
 } from "@ant-design/icons";
 
 const { Sider, Content, Footer, Header } = Layout;
 const { Title, Text } = Typography;
 
-// --- New "Synthwave" Metaverse Theme ---
-const colors = {
-  bg: "#0d0221", // Deep space blue/purple
-  surface: "#1a093d", // Darker purple for surfaces
-  primary: "#f923e9", // Electric pink/magenta
-  secondary: "#00f5d4", // Bright cyan/teal
-  text: "#f0f0f0", // Off-white for readability
-  textSecondary: "#a7a2c3", // Muted lavender for secondary info
-  border: "rgba(249, 35, 233, 0.2)", // Translucent pink border
-  gradient: "linear-gradient(135deg, #f923e9 0%, #00f5d4 100%)",
+/**
+ * -- Metaverse‐Inspired Theme Palettes --
+ *
+ * Dark: Deep cosmic purple/blue background with neon cyan/purple accents
+ * Light: Soft lavender/white background with violet accents
+ */
+const themes = {
+  dark: {
+    bg: "#0f0f1a", // Very dark navy with a hint of purple
+    surface: "#1e1e2a", // Deep charcoal-purple for panels
+    primary: "#8a2be2", // Neon violet accent
+    accent: "#00ffff", // Neon cyan highlight
+    text: "#e0e0e0", // Light gray for primary text
+    textSecondary: "#a0a0b0", // Muted gray for secondary text
+    border: "#2a2a3a", // Dark border
+  },
+  light: {
+    bg: "#f0f0f5", // Soft lavender background
+    surface: "#ffffff", // White for panels
+    primary: "#8a2be2", // Violet accent
+    accent: "#00ffff", // Cyan highlight
+    text: "#1b1b1f", // Very dark text
+    textSecondary: "#5a5a6a", // Muted gray
+    border: "#e0e0eb", // Light border
+  },
 };
 
-// Helper for gradient text
-const gradientText: React.CSSProperties = {
-  background: colors.gradient,
-  WebkitBackgroundClip: "text",
-  WebkitTextFillColor: "transparent",
-  fontWeight: 700,
-};
-
-// --- Stub Data for Conversations ---
+// --- Stub Data & Model Options ---
 const todayConvos = [
-  { key: "1", label: "Exploring Neon Grids" },
-  { key: "2", label: "Synthwave UI Palettes" },
+  { key: "1", label: "UI/UX Improvement" },
+  { key: "2", label: "State Management" },
 ];
-const olderConvos = [{ key: "3", label: "AI Model Integration" }];
-
+const olderConvos = [{ key: "3", label: "Initial Project Setup" }];
 const modelOptions = [
-    { key: "gpt4o-mini", label: "OpenAI: GPT-4o-Mini" },
-    { key: "gpt4-turbo", label: "OpenAI: GPT-4-Turbo" },
-    { key: "gemini-1.5-pro", label: "Google: Gemini 1.5 Pro" },
-    { key: "claude-3-sonnet", label: "Anthropic: Claude 3 Sonnet" },
+  { key: "gpt4o-mini", label: "OpenAI: GPT-4o-Mini" },
+  { key: "gpt4-turbo", label: "OpenAI: GPT-4-Turbo" },
+  { key: "gemini-1.5-pro", label: "Google: Gemini 1.5 Pro" },
+  { key: "claude-3-sonnet", label: "Anthropic: Claude 3 Sonnet" },
 ];
 
 export default function ClientAppLayout({ children }: { children: ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
-  const [hasChatted, setHasChatted] = useState(false); // Keeps track of chat state
+  const [hasChatted, setHasChatted] = useState(false);
   const [selectedModel, setSelectedModel] = useState(modelOptions[0]);
+  const [theme, setTheme] = useState<"dark" | "light">("dark");
 
+  const currentColors = themes[theme];
+
+  // --- Handlers ---
   const handleModelChange = (e: { key: React.Key }) => {
-    const model = modelOptions.find(m => m.key === e.key);
-    if (model) {
-        setSelectedModel(model);
-    }
-  };
-
-  const menuProps = {
-    items: modelOptions,
-    onClick: handleModelChange,
-    style: {
-      backgroundColor: colors.surface,
-      border: `1px solid ${colors.border}`,
-    },
-    theme: "dark" as const,
+    const model = modelOptions.find((m) => m.key === e.key);
+    if (model) setSelectedModel(model);
   };
 
   const handleSend = () => {
-    if (!hasChatted) {
-      setHasChatted(true);
-    }
+    if (!hasChatted) setHasChatted(true);
     // (Actual send logic goes here)
   };
 
+  const toggleTheme = (checked: boolean) => {
+    setTheme(checked ? "light" : "dark");
+  };
+
+  // --- Dynamic Styles ---
+  const gradientText: React.CSSProperties = {
+    background: `linear-gradient(135deg, ${currentColors.primary} 0%, ${currentColors.accent} 100%)`,
+    WebkitBackgroundClip: "text",
+    WebkitTextFillColor: "transparent",
+    fontWeight: 800,
+    fontFamily: "'Poppins', sans-serif",
+  };
+
+  const menuProps = {
+    items: modelOptions.map((opt) => ({
+      key: opt.key,
+      label: (
+        <Text style={{ color: currentColors.text, fontFamily: "'Poppins', sans-serif" }}>
+          {opt.label}
+        </Text>
+      ),
+    })),
+    onClick: handleModelChange,
+    style: {
+      backgroundColor: currentColors.surface,
+      border: `1px solid ${currentColors.border}`,
+      boxShadow:
+        theme === "dark"
+          ? "0 4px 12px rgba(0, 0, 0, 0.5)"
+          : "0 4px 12px rgba(0, 0, 0, 0.1)",
+    },
+  };
+
   return (
-    <Layout style={{ minHeight: "100vh", background: colors.bg }}>
-      {/* --- Sidebar --- */}
+    <Layout
+      style={{
+        minHeight: "100vh",
+        background: currentColors.bg,
+        fontFamily: "'Poppins', sans-serif",
+      }}
+    >
+      {/* --- Sidebar (Resizable via CSS) --- */}
       <Sider
         width={240}
         collapsible
         collapsed={collapsed}
-        trigger={null} // We use a custom trigger in the header
-        onCollapse={setCollapsed}
+        trigger={null}
         style={{
-          background: colors.surface,
-          borderRight: `1px solid ${colors.border}`,
+          background: currentColors.surface,
+          borderRight: `1px solid ${currentColors.border}`,
+          resize: "horizontal",
+          overflow: "auto",
+          minWidth: 80,
+          maxWidth: 400,
         }}
       >
-        <div style={{ padding: "16px", height: "64px", display: "flex", alignItems: "center", gap: 12 }}>
-          <AppstoreOutlined style={{ fontSize: "28px", color: colors.secondary }} />
+        <div
+          style={{
+            padding: "16px",
+            height: "64px",
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+          }}
+        >
+          <AppstoreOutlined
+            style={{ fontSize: "28px", color: currentColors.accent }}
+          />
           {!collapsed && (
             <div>
-              <Text strong style={{ color: colors.text, fontSize: 16 }}>
+              <Text
+                strong
+                style={{ color: currentColors.text, fontSize: 16 }}
+              >
                 DocuRAG
               </Text>
               <br />
-              <Text style={{ color: colors.textSecondary, fontSize: 12 }}>
-                Synthwave Edition
+              <Text
+                style={{ color: currentColors.textSecondary, fontSize: 12 }}
+              >
+                Advanced Edition
               </Text>
             </div>
           )}
         </div>
 
         <Menu
-          theme="dark"
+          theme={theme}
           mode="inline"
           selectable={false}
           style={{ background: "transparent", border: 0 }}
@@ -130,105 +186,247 @@ export default function ClientAppLayout({ children }: { children: ReactNode }) {
             {
               key: "todayHeader",
               type: "group",
-              label: <Text style={{ color: colors.textSecondary }}>Today</Text>,
+              label: (
+                <Text style={{ color: currentColors.textSecondary }}>
+                  Today
+                </Text>
+              ),
             },
             ...todayConvos,
             {
               key: "prev",
               type: "group",
-              label: <Text style={{ color: colors.textSecondary }}>Previous 30 Days</Text>,
+              label: (
+                <Text style={{ color: currentColors.textSecondary }}>
+                  Previous 30 Days
+                </Text>
+              ),
             },
             ...olderConvos,
           ]}
         />
 
-        <div style={{ position: "absolute", bottom: 16, width: "100%", paddingInline: 16 }}>
-          <Button block type="text" icon={<GithubOutlined />} style={{ color: colors.textSecondary, textAlign: "left" }}>
+        <div
+          style={{
+            position: "absolute",
+            bottom: 16,
+            width: "100%",
+            paddingInline: 16,
+          }}
+        >
+          <Button
+            block
+            type="text"
+            icon={<GithubOutlined />}
+            style={{
+              color: currentColors.textSecondary,
+              textAlign: "left",
+              fontFamily: "'Poppins', sans-serif",
+            }}
+          >
             {!collapsed && "GitHub"}
           </Button>
-          <Button block type="text" icon={<MessageOutlined />} style={{ color: colors.textSecondary, textAlign: "left" }}>
+          <Button
+            block
+            type="text"
+            icon={<MessageOutlined />}
+            style={{
+              color: currentColors.textSecondary,
+              textAlign: "left",
+              fontFamily: "'Poppins', sans-serif",
+            }}
+          >
             {!collapsed && "Feedback"}
           </Button>
         </div>
       </Sider>
 
       {/* --- Main Panel --- */}
-      <Layout style={{ background: colors.bg }}>
+      <Layout style={{ background: currentColors.bg }}>
         <Header
           style={{
-            background: "transparent",
+            background: currentColors.surface,
             padding: "0 24px",
             display: "flex",
             alignItems: "center",
+            justifyContent: "space-between",
             height: 64,
-            borderBottom: `1px solid ${colors.border}`,
+            borderBottom: `1px solid ${currentColors.border}`,
           }}
         >
           <Button
             type="text"
             icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
             onClick={() => setCollapsed(!collapsed)}
-            style={{ fontSize: "16px", color: colors.text }}
+            style={{ fontSize: "16px", color: currentColors.text }}
           />
-          {/* You can add more header elements here if needed */}
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {/* -- Model Selector moved to Header (smaller size) -- */}
+            <Dropdown
+              menu={menuProps}
+              placement="bottomRight"
+              arrow
+              trigger={["click"]}
+            >
+              <Button
+                size="small"
+                style={{
+                  background: currentColors.surface,
+                  border: `1px solid ${currentColors.border}`,
+                  color: currentColors.text,
+                  fontFamily: "'Poppins', sans-serif",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <span style={{ fontSize: 12 }}>
+                  {selectedModel.label.replace("OpenAI:", "").trim()}
+                </span>
+                <DownOutlined style={{ color: currentColors.textSecondary }} />
+              </Button>
+            </Dropdown>
+
+            {/* -- Theme Toggle -- */}
+            <Switch
+              checkedChildren={<SunOutlined />}
+              unCheckedChildren={<MoonOutlined />}
+              onChange={toggleTheme}
+              checked={theme === "light"}
+              style={{
+                background: theme === "light" ? currentColors.primary : "",
+              }}
+            />
+          </div>
         </Header>
 
         <Content
           style={{
             padding: "24px",
-            overflow: "auto",
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
+            position: "relative",
+            background: currentColors.bg,
           }}
         >
-          {/* --- Empty-state hero (shown until first message) --- */}
           {!hasChatted && (
-            <div style={{ maxWidth: 720, textAlign: "center", marginTop: "10vh" }}>
-              <Title level={1} style={{ ...gradientText, fontSize: "clamp(2rem, 5vw, 3.5rem)" }}>
+            <div
+              style={{
+                maxWidth: 720,
+                textAlign: "center",
+                marginTop: "10vh",
+              }}
+            >
+              <Title
+                level={1}
+                style={{
+                  ...gradientText,
+                  fontSize: "clamp(2.5rem, 5vw, 4rem)",
+                  marginBottom: 16,
+                }}
+              >
                 How can I help you today?
               </Title>
-              <Text style={{ color: colors.textSecondary, fontSize: "16px", maxWidth: "500px", margin: "0 auto" }}>
-                Ready to assist you with documents, RAG queries, and more. Let’s get started!
+              <Text
+                style={{
+                  color: currentColors.textSecondary,
+                  fontSize: "18px",
+                  maxWidth: "550px",
+                  margin: "0 auto 40px",
+                  fontFamily: "'Poppins', sans-serif",
+                }}
+              >
+                Leverage powerful AI with a clear, responsive interface. Ready
+                to get started?
               </Text>
 
-              <div style={{ display: "flex", gap: 24, marginTop: 48, flexWrap: "wrap", justifyContent: "center" }}>
-                <BenefitCard icon={<LockFilled />} title="Privacy First" desc="Your documents and data remain local" />
-                <BenefitCard icon={<PictureFilled />} title="Multimodal" desc="Upload files, images, or text effortlessly" />
-                <BenefitCard icon={<DollarCircleFilled />} title="Cost Effective" desc="Leverage powerful AI without the high cost" />
+              <div
+                style={{
+                  display: "flex",
+                  gap: 24,
+                  flexWrap: "wrap",
+                  justifyContent: "center",
+                }}
+              >
+                <BenefitCard
+                  colors={currentColors}
+                  icon={<LockFilled />}
+                  title="Privacy First"
+                  desc="Your documents and data remain local"
+                />
+                <BenefitCard
+                  colors={currentColors}
+                  icon={<PictureFilled />}
+                  title="Multimodal"
+                  desc="Upload files, images, or text"
+                />
+                <BenefitCard
+                  colors={currentColors}
+                  icon={<DollarCircleFilled />}
+                  title="Cost Effective"
+                  desc="No exorbitant enterprise costs"
+                />
               </div>
             </div>
           )}
-
-          {/* Render the chat history here when `hasChatted` is true */}
           {children}
-
           <div style={{ flexGrow: 1 }} />
         </Content>
 
-        {/* --- Chat Input & Footer --- */}
-        <Footer style={{ background: "transparent", padding: "0 24px 24px" }}>
+        <Footer
+          style={{
+            background: "transparent",
+            padding: "0 24px 24px",
+          }}
+        >
           <div style={{ maxWidth: 800, margin: "0 auto" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, justifyContent: "space-between", marginBottom: 12 }}>
-              <Dropdown menu={menuProps} placement="topLeft">
-                <Button style={{ background: "transparent", color: colors.textSecondary, border: `1px solid ${colors.border}` }}>
-                  {selectedModel.label} <DownOutlined />
-                </Button>
-              </Dropdown>
-              <Button type="text" size="small" style={{ color: colors.textSecondary }}> Privacy </Button>
-            </div>
-
-            <div style={{ display: "flex", alignItems: "center", gap: 8, background: colors.surface, borderRadius: 12, padding: "8px", border: `1px solid ${colors.border}` }}>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                background: currentColors.surface,
+                borderRadius: 12,
+                padding: "8px 12px",
+                border: `1px solid ${currentColors.border}`,
+                boxShadow:
+                  theme === "dark"
+                    ? "0 4px 12px rgba(0, 0, 0, 0.5)"
+                    : "0 4px 12px rgba(0, 0, 0, 0.1)",
+              }}
+            >
               <Upload beforeUpload={() => false} multiple showUploadList={false}>
-                <Button icon={<PlusOutlined />} type="text" style={{ color: colors.text }} />
+                <Button
+                  icon={<PlusOutlined />}
+                  type="text"
+                  style={{ color: currentColors.text }}
+                />
               </Upload>
               <Input.TextArea
                 autoSize={{ minRows: 1, maxRows: 6 }}
-                placeholder={`Message with ${selectedModel.label.split(":")[1].trim()}`}
+                placeholder={`Message with ${selectedModel.label
+                  .split(":")[1]
+                  .trim()}`}
                 bordered={false}
-                style={{ flex: 1, color: colors.text, background: "transparent", resize: "none" }}
+                style={{
+                  flex: 1,
+                  color: currentColors.text,
+                  background: "transparent",
+                  resize: "none",
+                  fontFamily: "'Poppins', sans-serif",
+                }}
               />
-              <Button type="primary" icon={<SendOutlined />} onClick={handleSend} style={{ background: colors.primary, color: "white" }} />
+              <Button
+                type="primary"
+                icon={<SendOutlined />}
+                onClick={handleSend}
+                style={{
+                  background: currentColors.accent,
+                  borderColor: currentColors.accent,
+                  color: "#000",
+                }}
+              />
             </div>
           </div>
         </Footer>
@@ -237,25 +435,56 @@ export default function ClientAppLayout({ children }: { children: ReactNode }) {
   );
 }
 
-/* --- Reusable small card component --- */
-function BenefitCard({ icon, title, desc }: { icon: React.ReactNode; title: string; desc: string }) {
+// Reusable card component now receives colors as a prop
+function BenefitCard({
+  icon,
+  title,
+  desc,
+  colors,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  desc: string;
+  colors: any;
+}) {
   return (
     <Card
       style={{
-        width: 200,
-        background: `rgba(26, 9, 61, 0.5)`, // Semi-transparent surface
+        width: 210,
+        background: colors.surface,
         border: `1px solid ${colors.border}`,
         borderRadius: 16,
-        backdropFilter: "blur(10px)",
+        boxShadow:
+          colors.bg === themes.dark.bg
+            ? "0 8px 24px rgba(0,0,0,0.3)"
+            : "0 8px 24px rgba(0,0,0,0.05)",
       }}
       bodyStyle={{ padding: 24, textAlign: "center" }}
       hoverable
     >
-      <div style={{ fontSize: 28, color: colors.secondary, marginBottom: 12 }}>{icon}</div>
-      <Text strong style={{ color: colors.text, display: "block", marginBottom: 4 }}>
+      <div style={{ fontSize: 28, color: colors.accent, marginBottom: 12 }}>
+        {icon}
+      </div>
+      <Text
+        strong
+        style={{
+          color: colors.text,
+          display: "block",
+          marginBottom: 4,
+          fontFamily: "'Poppins', sans-serif",
+        }}
+      >
         {title}
       </Text>
-      <Text style={{ fontSize: 12, color: colors.textSecondary }}>{desc}</Text>
+      <Text
+        style={{
+          fontSize: 12,
+          color: colors.textSecondary,
+          fontFamily: "'Poppins', sans-serif",
+        }}
+      >
+        {desc}
+      </Text>
     </Card>
   );
 }
