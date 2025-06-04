@@ -1,4 +1,3 @@
-
 # main.py
 
 import os
@@ -33,7 +32,10 @@ app = FastAPI(
 # 3. Allow CORS from our frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "https://docuquest-sigma.vercel.app"
+    ],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -176,6 +178,15 @@ def build_answer_prompt(question: str, relevant_chunks: List[Dict]) -> str:
     return prompt
 
 
+# ---------- Root Endpoint ----------
+
+@app.get("/")
+async def read_root():
+    return {
+        "message": "FastAPI backend is running. Use POST /upload to upload documents and POST /query to query."
+    }
+
+
 # ---------- /upload Endpoint ----------
 
 @app.post("/upload", response_model=UploadResponse)
@@ -303,4 +314,3 @@ async def query_document(q: QueryRequest):
     ]
 
     return {"answer": answer, "citations": citations}
-
