@@ -4,7 +4,7 @@ import os
 import io
 from typing import List, Dict
 
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from langdetect import detect
@@ -16,32 +16,70 @@ import docx
 import chromadb
 from chromadb.config import Settings
 
-# 1. Load environment (including OPENAI_API_KEY)
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+
+
+# ─── 1. Load environment (including OPENAI_API_KEY) ────────────────────────
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 if not openai.api_key:
     raise RuntimeError("OPENAI_API_KEY environment variable is missing")
 
-# 2. Initialize FastAPI
+
+# ─── 2. Initialize FastAPI ─────────────────────────────────────────────────
 app = FastAPI(
     title="Document RAG Backend",
     description="Upload docs, translate if needed, chunk, embed + store in ChromaDB, and query with citations",
     version="0.2.0",
 )
 
-# 3. Allow CORS from our frontend
+
+# ─── 3. HEAD / to satisfy Render health checks ─────────────────────────────
+@app.head("/")
+async def head_root():
+    return Response(status_code=200)
+
+
+# ─── 4. Add middleware to allow larger uploads (100 MB) ────────────────────
+class LimitUploadSizeMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app, max_upload_size: int):
+        super().__init__(app)
+        self.max_upload_size = max_upload_size
+
+    async def dispatch(self, request: Request, call_next):
+        # Only check multipart/form-data (file uploads)
+        content_type = request.headers.get("content-type") or ""
+        if request.method == "POST" and "multipart/form-data" in content_type:
+            content_length = request.headers.get("content-length")
+            try:
+                if content_length and int(content_length) > self.max_upload_size:
+                    return Response(content="Upload payload too large", status_code=413)
+            except ValueError:
+                # If content-length is missing or invalid, let FastAPI handle it
+                pass
+
+        return await call_next(request)
+
+
+# Set maximum upload size to 100 MB = 100 * 1024 * 1024 bytes
+MAX_UPLOAD_SIZE = 50 * 1024 * 1024
+app.add_middleware(LimitUploadSizeMiddleware, max_upload_size=MAX_UPLOAD_SIZE)
+
+
+# ─── 5. Allow CORS from our frontend ───────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
-        "https://docuquest-sigma.vercel.app"
+        "https://docuquest-sigma.vercel.app",
     ],
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# 4. Initialize ChromaDB client & collection
-#    Embeddings and metadata persist under ./chroma_db
+
+# ─── 6. Initialize ChromaDB client & collection ────────────────────────────
 chroma_client = chromadb.Client(
     Settings(
         persist_directory="chroma_db",
@@ -51,8 +89,7 @@ chroma_client = chromadb.Client(
 collection = chroma_client.get_or_create_collection(name="documents")
 
 
-# ---------- Pydantic Models ----------
-
+# ─── 7. Pydantic Models ─────────────────────────────────────────────────────
 class ChunkWithEmbedding(BaseModel):
     chunk_index: int
     text: str
@@ -76,8 +113,7 @@ class QueryResponse(BaseModel):
     citations: List[Dict[str, str]]  # both source and chunk_index are strings
 
 
-# ---------- Utility Functions ----------
-
+# ─── 8. Utility Functions ───────────────────────────────────────────────────
 def extract_text_from_pdf(file_stream: io.BytesIO) -> str:
     reader = PyPDF2.PdfReader(file_stream)
     text = []
@@ -178,8 +214,7 @@ def build_answer_prompt(question: str, relevant_chunks: List[Dict]) -> str:
     return prompt
 
 
-# ---------- Root Endpoint ----------
-
+# ─── 9. Root Endpoint ───────────────────────────────────────────────────────
 @app.get("/")
 async def read_root():
     return {
@@ -187,8 +222,7 @@ async def read_root():
     }
 
 
-# ---------- /upload Endpoint ----------
-
+# ─── 10. /upload Endpoint ─────────────────────────────────────────────────────
 @app.post("/upload", response_model=UploadResponse)
 async def upload_document(file: UploadFile = File(...)):
     filename = file.filename or ""
@@ -262,8 +296,7 @@ async def upload_document(file: UploadFile = File(...)):
     }
 
 
-# ---------- /query Endpoint ----------
-
+# ─── 11. /query Endpoint ─────────────────────────────────────────────────────
 @app.post("/query", response_model=QueryResponse)
 async def query_document(q: QueryRequest):
     question = q.question.strip()
