@@ -44,6 +44,8 @@ export default function HomePage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const router = useRouter();
 
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
+
   // Called whenever user selects file(s). Upload immediately and redirect.
   const beforeUploadHandler = async (file: RcFile) => {
     setIsProcessing(true);
@@ -53,7 +55,7 @@ export default function HomePage() {
     formData.append("file", file);
 
     try {
-      const resp = await fetch("http://localhost:8000/upload", {
+      const resp = await fetch(`${API_URL}/upload`, {
         method: "POST",
         body: formData,
       });

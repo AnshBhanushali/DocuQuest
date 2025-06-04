@@ -10,7 +10,7 @@ import {
   HomeOutlined,
   HistoryOutlined,
   SendOutlined,
-} from "@ant-design/icons"; // <-- Added MenuFoldOutlined & MenuUnfoldOutlined
+} from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 
 const { Sider, Header, Content, Footer } = Layout;
@@ -28,18 +28,15 @@ export default function ChatPage() {
   const [inputText, setInputText] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // Redirect if no document uploaded (optional)
-  useEffect(() => {
-    // e.g. if (!localStorage.getItem("uploaded")) { router.push("/"); }
-  }, [router]);
-
-  // Scroll-to-bottom whenever messages change
+  // Scroll‐to‐bottom whenever messages change
   const listContainerRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     if (listContainerRef.current) {
       listContainerRef.current.scrollTop = listContainerRef.current.scrollHeight;
     }
   }, [messages]);
+
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
   const sendQuestion = async () => {
     const question = inputText.trim();
@@ -52,7 +49,7 @@ export default function ChatPage() {
 
     try {
       // 2) Hit your backend /query endpoint
-      const resp = await fetch("http://localhost:8000/query", {
+      const resp = await fetch(`${API_URL}/query`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question, top_k: 3 }),
@@ -156,15 +153,12 @@ export default function ChatPage() {
             {
               key: "history",
               icon: (
-                <HistoryOutlined
-                  style={{ fontSize: 18, color: "#e0e0e0" }}
-                />
+                <HistoryOutlined style={{ fontSize: 18, color: "#e0e0e0" }} />
               ),
               label: collapsed ? null : (
                 <span style={{ color: "#e0e0e0" }}>Chat History</span>
               ),
             },
-            // (Later, populate with actual history items)
           ]}
         />
       </Sider>
