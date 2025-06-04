@@ -2,7 +2,6 @@
 import React, { ReactNode } from "react";
 import "antd/dist/reset.css"; // Load AntD v5 reset CSS
 
-
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
