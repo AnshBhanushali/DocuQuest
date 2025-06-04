@@ -22,28 +22,19 @@ import {
   SafetyCertificateOutlined,
   HomeOutlined,
   InfoCircleOutlined,
-  DollarOutlined,
-  UserAddOutlined,
   TeamOutlined,
   RocketOutlined,
   DownOutlined,
 } from "@ant-design/icons";
-
-
-
-
-// After successful upload/processing:
-
-
+import type { RcFile } from "antd/es/upload/interface";
 
 const { Header, Content, Footer } = Layout;
 const { Title, Paragraph, Text } = Typography;
 
-// — Single dark‐mode palette —
 const colors = {
-  bg: "#0a0d14",        // Very dark navy
-  surface: "#121724",   // Slightly lighter panel color
-  accent: "#3b82f6",    // Bright blue accent
+  bg: "#0a0d14",
+  surface: "#121724",
+  accent: "#3b82f6",
   textPrimary: "#e2e2e2",
   textSecondary: "#8a8d94",
   border: "#1f2530",
@@ -53,11 +44,11 @@ export default function HomePage() {
   const [isProcessing, setIsProcessing] = useState(false);
   const router = useRouter();
 
-  // Called when a file is selected
-  const beforeUploadHandler = async (file: File) => {
+  // Called whenever user selects file(s). Upload immediately and redirect.
+  const beforeUploadHandler = async (file: RcFile) => {
     setIsProcessing(true);
 
-    // Build FormData
+    // Build FormData. Use key "file" to match backend expectation.
     const formData = new FormData();
     formData.append("file", file);
 
@@ -68,8 +59,18 @@ export default function HomePage() {
       });
 
       if (!resp.ok) {
-        const errJson = await resp.json().catch(() => ({}));
-        throw new Error(errJson.detail || "Upload failed");
+        let detailText = "Upload failed";
+        try {
+          const errJson = await resp.json();
+          if (typeof errJson.detail === "string") {
+            detailText = errJson.detail;
+          } else if (typeof errJson.error === "string") {
+            detailText = errJson.error;
+          }
+        } catch {
+          // ignore JSON parse errors
+        }
+        throw new Error(detailText);
       }
 
       notification.success({
@@ -78,25 +79,27 @@ export default function HomePage() {
         placement: "bottomRight",
       });
 
-      // Give a brief moment for notification to show
+      // Small delay so the notification shows
       setTimeout(() => {
         router.push("/chat");
       }, 500);
     } catch (err: any) {
-      console.error(err);
+      console.error("Upload error details:", err);
       notification.error({
         message: "Upload Error",
-        description: err.message || "Something went wrong during upload.",
+        description:
+          typeof err.message === "string"
+            ? err.message
+            : "Something went wrong during upload.",
         placement: "bottomRight",
       });
       setIsProcessing(false);
     }
 
-    // Prevent automatic Upload behavior:
+    // Prevent automatic Upload behavior
     return false;
   };
 
-  // Smooth‐scroll to “How It Works” section
   const scrollToHowItWorks = () => {
     document
       .getElementById("how-it-works")
@@ -127,27 +130,21 @@ export default function HomePage() {
           </Title>
         </div>
         <nav style={{ display: "flex", alignItems: "center", gap: 24 }}>
-          <Link href="/" style={{ color: colors.textPrimary, fontSize: 16 }}>
-            <HomeOutlined /> Home
-          </Link>
-          <Link
-            href="#how-it-works"
-            style={{ color: colors.textPrimary, fontSize: 16 }}
-          >
-            <InfoCircleOutlined /> How It Works
-          </Link>
-          <Link
-            href="#benefits"
-            style={{ color: colors.textPrimary, fontSize: 16 }}
-          >
-            <TeamOutlined /> Benefits
-          </Link>
-          <Link
-            href="#start"
-            style={{ color: colors.textPrimary, fontSize: 16 }}
-          >
-            <RocketOutlined /> Get Started
-          </Link>
+        <Link href="/" style={{ color: colors.textPrimary, fontSize: 16 }}>
+  <HomeOutlined /> Home
+</Link>
+
+<Link href="#how-it-works" style={{ color: colors.textPrimary, fontSize: 16 }}>
+  <InfoCircleOutlined /> How It Works
+</Link>
+
+<Link href="#benefits" style={{ color: colors.textPrimary, fontSize: 16 }}>
+  <TeamOutlined /> Benefits
+</Link>
+
+<Link href="#start" style={{ color: colors.textPrimary, fontSize: 16 }}>
+  Get Started
+</Link>
         </nav>
       </Header>
 
@@ -239,30 +236,31 @@ export default function HomePage() {
             </Text>
           </div>
 
-          {/* Upload Button (triggers beforeUploadHandler) */}
-          <Upload
-            accept=".pdf,.docx,.txt"
-            multiple={false}
-            showUploadList={false}
-            beforeUpload={beforeUploadHandler}
-          >
-            <Button
-              size="large"
-              type="primary"
-              icon={<UploadOutlined />}
-              style={{
-                background: colors.accent,
-                borderColor: colors.accent,
-                color: "#000",
-                fontSize: 16,
-                padding: "12px 40px",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-                zIndex: 1,
-              }}
+          {/* Browsing/Uploading Documents */}
+          <div style={{ zIndex: 1 }}>
+            <Upload
+              accept=".pdf,.docx,.txt"
+              multiple={true} // allow selecting any number of files
+              showUploadList={false}
+              beforeUpload={beforeUploadHandler}
             >
-              Browse Document
-            </Button>
-          </Upload>
+              <Button
+                size="large"
+                type="primary"
+                icon={<UploadOutlined />}
+                style={{
+                  background: colors.accent,
+                  borderColor: colors.accent,
+                  color: "#000",
+                  fontSize: 16,
+                  padding: "12px 40px",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+                }}
+              >
+                Browse Document(s)
+              </Button>
+            </Upload>
+          </div>
 
           {/* Down arrow to scroll */}
           <DownOutlined
@@ -284,7 +282,7 @@ export default function HomePage() {
             }}
           />
 
-          {/* Full‐screen spinner overlay */}
+          {/* Full‐screen spinner overlay while processing */}
           {isProcessing && (
             <div
               style={{
@@ -300,11 +298,7 @@ export default function HomePage() {
                 zIndex: 2,
               }}
             >
-              <Spin
-                tip="Processing your document…"
-                size="large"
-                style={{ color: "#fff" }}
-              />
+              <Spin size="large" style={{ color: "#fff" }} />
             </div>
           )}
         </div>
@@ -338,7 +332,8 @@ export default function HomePage() {
                 }}
                 hoverable
                 onMouseEnter={(e) => {
-                  (e.currentTarget as any).style.transform = "translateY(-4px)";
+                  (e.currentTarget as any).style.transform =
+                    "translateY(-4px)";
                 }}
                 onMouseLeave={(e) => {
                   (e.currentTarget as any).style.transform = "translateY(0)";
@@ -352,10 +347,10 @@ export default function HomePage() {
                   }}
                 />
                 <Title level={4} style={{ color: colors.textPrimary }}>
-                  Step 1: Upload Your File
+                  Step 1: Upload Your Files
                 </Title>
                 <Text style={{ color: colors.textSecondary }}>
-                  Choose a PDF, DOCX, or TXT. We securely index it in seconds.
+                  Select as many documents as you like. We securely index them in seconds.
                 </Text>
               </Card>
             </Col>
@@ -372,7 +367,8 @@ export default function HomePage() {
                 }}
                 hoverable
                 onMouseEnter={(e) => {
-                  (e.currentTarget as any).style.transform = "translateY(-4px)";
+                  (e.currentTarget as any).style.transform =
+                    "translateY(-4px)";
                 }}
                 onMouseLeave={(e) => {
                   (e.currentTarget as any).style.transform = "translateY(0)";
@@ -389,7 +385,7 @@ export default function HomePage() {
                   Step 2: AI‐Powered Analysis
                 </Title>
                 <Text style={{ color: colors.textSecondary }}>
-                  Our AI indexes your document so you can query instantly.
+                  Our AI indexes all your documents so you can query them instantly.
                 </Text>
               </Card>
             </Col>
@@ -406,7 +402,8 @@ export default function HomePage() {
                 }}
                 hoverable
                 onMouseEnter={(e) => {
-                  (e.currentTarget as any).style.transform = "translateY(-4px)";
+                  (e.currentTarget as any).style.transform =
+                    "translateY(-4px)";
                 }}
                 onMouseLeave={(e) => {
                   (e.currentTarget as any).style.transform = "translateY(0)";
@@ -423,7 +420,7 @@ export default function HomePage() {
                   Step 3: Ask & Discover
                 </Title>
                 <Text style={{ color: colors.textSecondary }}>
-                  Chat with your document. Receive answers and insights instantly.
+                  Chat with any of your documents. Receive answers and insights instantly.
                 </Text>
               </Card>
             </Col>
@@ -535,27 +532,7 @@ export default function HomePage() {
             Join professionals and academics who have streamlined workflows by
             turning static files into dynamic, conversational experiences.
           </Paragraph>
-          <Upload
-            accept=".pdf,.docx,.txt"
-            showUploadList={false}
-            beforeUpload={beforeUploadHandler}
-          >
-            <Button
-              size="large"
-              type="primary"
-              icon={<UploadOutlined />}
-              style={{
-                background: colors.accent,
-                borderColor: colors.accent,
-                color: "#000",
-                fontSize: 16,
-                padding: "12px 40px",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-              }}
-            >
-              Upload &amp; Explore
-            </Button>
-          </Upload>
+          {/* Since selecting documents triggers upload + redirect, no extra button here */}
         </div>
       </Content>
 
